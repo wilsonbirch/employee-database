@@ -11,31 +11,50 @@
 #include "common.h"
 #include "parse.h"
 
-void search_employee(struct dbheader_t *dbhdr, struct employee_t *employees, char *addstring){
-	int i=0;
-	bool found = false;
+int delete_employee(struct dbheader_t *dbhdr, struct employee_t *employees, char *deletestring){
+	int employee_index = search_employee(dbhdr, employees, deletestring);
+	if(employee_index == STATUS_ERROR){
+		printf("Cannot delete an employee that does not exist\n");
+		return employee_index;
+	}
+
+	printf("Deleting employee: %s\n", employees[employee_index].name);
+
+    for(int i = employee_index; i < dbhdr->count - 1; i++){
+        employees[i] = employees[i + 1];
+    }
+    
+    dbhdr->count--;
+    dbhdr->filesize = sizeof(struct dbheader_t) + (dbhdr->count * sizeof(struct employee_t));
+    
+    printf("Employee deleted successfully\n");
+    return STATUS_SUCCESS;
+
+}
+
+int search_employee(struct dbheader_t *dbhdr, struct employee_t *employees, char *searchstring){
+	int i = 0;
 	for(; i < dbhdr->count; i++){
-		if(strcmp(employees[i].name, addstring) == 0){
+		if(strcasecmp(employees[i].name, searchstring) == 0){
 			printf("Employee %d Found\n", i+1);
 			printf("\tName: %s\n", employees[i].name);
 			printf("\tAddress: %s\n", employees[i].address);
 			printf("\tHours: %d\n", employees[i].hours);
-			found = true;
+			return i;
 		}
 	}
-	if(found == false){
-		printf("No Employee with that name found\n");
-	}
+
+	printf("No Employee with that name found\n");
+	return STATUS_ERROR;
 }
 
 void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees){
 	int i=0;
 	for(; i < dbhdr->count; i++){
-		printf("Employee %d\n", i);
+		printf("Employee %d\n", i+1);
 		printf("\tName %s\n", employees[i].name);
 		printf("\tAddress %s\n", employees[i].address);
 		printf("\thours %d\n", employees[i].hours);
-
 	}
 }
 
@@ -90,21 +109,24 @@ void output_file(int fd, struct dbheader_t *dbhdr, struct employee_t *employees)
 	}
 
 	int realcount = dbhdr->count;
+	int new_filesize = sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount);
 
-	dbhdr->magic = htonl(dbhdr->magic);
-	dbhdr->filesize = htonl(sizeof(struct dbheader_t) + (sizeof(struct employee_t) * realcount));
-	dbhdr->count = htons(dbhdr->count);
-	dbhdr->version = htons(dbhdr->version);
+    struct dbheader_t header_copy = *dbhdr;
+    header_copy.magic = htonl(header_copy.magic);
+    header_copy.filesize = htonl(new_filesize);
+    header_copy.count = htons(header_copy.count);
+    header_copy.version = htons(header_copy.version);
 
-	lseek(fd, 0, SEEK_SET);
-
-	write(fd, dbhdr, sizeof(struct dbheader_t));
+    lseek(fd, 0, SEEK_SET);
+    write(fd, &header_copy, sizeof(struct dbheader_t));
 
 	int i = 0;
 	for(; i < realcount; i++) {
 		employees[i].hours = htonl(employees[i].hours);
 		write(fd, &employees[i], sizeof(struct employee_t));
 	}
+
+	ftruncate(fd, new_filesize);
 
 	return;
 }

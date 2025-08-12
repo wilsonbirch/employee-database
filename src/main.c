@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
 	char *filepath = NULL;
 	char *addstring = NULL;
 	char *searchstring = NULL;
+	char *deletestring = NULL;
 
 	bool list = false;
 	bool newfile = false;
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
 	struct employee_t *employees = NULL;
 
 
-	while((c = getopt(argc, argv, "nf:a:s:l")) != -1){
+	while((c = getopt(argc, argv, "nf:a:s:d:l")) != -1){
 		switch(c){
 			case 'n':
 				newfile = true;
@@ -45,6 +46,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 's':
 				searchstring = optarg;
+				break;
+			case 'd':
+				deletestring = optarg;
 				break;
 			case '?':
 				printf("Unknown option -%c\n", c);
@@ -102,6 +106,10 @@ int main(int argc, char *argv[]) {
 
 	if(searchstring){
 		search_employee(dbhdr, employees, searchstring);
+	}
+
+	if(deletestring){
+		delete_employee(dbhdr, employees, deletestring);
 	}
 
 	output_file(dbfd, dbhdr, employees);
