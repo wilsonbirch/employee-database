@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) {
 	char *addstring = NULL;
 	char *searchstring = NULL;
 	char *deletestring = NULL;
+	
 
 	bool list = false;
 	bool newfile = false;
